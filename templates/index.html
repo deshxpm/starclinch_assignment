@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% block content %}
+
+        <section>
+            <h2>Add Expense</h2>
+            <form action="{% url 'add_expense' %}" method="post">
+                {% csrf_token %}
+                <label for="amount">Amount:</label>
+                <input type="text" name="amount" id="amount" required>
+                <br>
+                <label for="expense_type">Expense Type:</label>
+                <select name="expense_type" id="expense_type" onchange="handleExpenseTypeChange()" required>
+                    <option value="EQUAL">Equal</option>
+                    <option value="EXACT">Exact</option>
+                    <option value="PERCENT">Percent</option>
+                </select>
+                <br>
+                <div id="participantsDropdown" style="display: none;">
+                    <label for="participants">Participants:</label><br>
+                    <select name="participants" id="participants" multiple>
+                        {% for user in all_users %}
+                            <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="exactAmounts" style="display: none;">
+                    <label for="participants_with_amount">Exact Amounts:</label><br>
+                    {% for user in all_users %}
+                        <input type="text" name="exact_amount_{{ user.id }}" placeholder="{{ user.first_name }} {{ user.last_name }}">
+                        <br>
+                    {% endfor %}
+                </div>
+                <div id="percentages" style="display: none;">
+                    <label for="percentages">Percentages:</label><br>
+                    <div id="percentageFields">
+                        <div class="percentageField">
+                            <input type="text" name="percentages" required>
+                            <button type="button" class="removePercentage btn btn-danger btn-sm">Remove</button>
+                            <button type="button" class="btn btn-success btn-sm" id="addPercentage">Add</button>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <button type="submit">Add Expense</button>
+            </form>
+        </section>
+
+
+        <section class="container">
+            <h2>Expenses</h2>
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">UserId</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Expense Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in user_expenses %}
+                        <tr>
+                            <td>{{expense.user.id}}</td>
+                            <td>{{ expense.user.first_name }} {{ expense.user.last_name }}</td>
+                            <td>{{ expense.amount }}</td>
+                            <td>{{ expense.expense_type }}</td>
+                        </tr>
+                        {% empty %}
+                        <li>No expenses found</li>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="container">
+            <h2>Participants Shares</h2>
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">UserId</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Share</th>
+                        <th scope="col">Expense Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_share in user_share %}
+                        <tr>
+                            <td>{{user_share.user.id}}</td>
+                            <td>{{ user_share.user.first_name }} {{ user_share.user.last_name }}</td>
+                            <td>{{ user_share.amount_owed }}</td>
+                            <td>{{ user_share.expense.expense_type }}</td>
+                        </tr>
+                        {% empty %}
+                        <li>No shares found</li>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        <hr>
+
+        <section class="container">
+            <h2>Balances</h2>
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">UserId</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for balance in user_balances %}
+                        {% if balance.amount != 0 %}
+                        <tr>
+                            <td>{{balance.user.id}}</td>
+                            <td>{{ balance.user.first_name }} {{ balance.user.last_name }}</td>
+                            <td>{{ balance.amount }}</td>
+                        </tr>
+                        {% endif %}
+                        {% empty %}
+                        <li>No balances found</li>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        
+
+        <script>
+            function handleExpenseTypeChange() {
+                var expenseType = document.getElementById('expense_type').value;
+                var participantsDropdown = document.getElementById('participantsDropdown');
+                var exactAmounts = document.getElementById('exactAmounts');
+                var percentages = document.getElementById('percentages');
+        
+                // Display or hide sections based on the selected expense type
+                if (expenseType === 'EQUAL') {
+                    participantsDropdown.style.display = 'block';
+                    exactAmounts.style.display = 'none';
+                    percentages.style.display = 'none';
+                    participantsDropdown.querySelector('select').setAttribute('required', 'required');
+                } else if (expenseType === 'EXACT') {
+                    participantsDropdown.style.display = 'none';
+                    exactAmounts.style.display = 'block';
+                    percentages.style.display = 'none';
+                    participantsDropdown.querySelector('select').removeAttribute('required');
+                } else if (expenseType === 'PERCENT') {
+                    participantsDropdown.style.display = 'block';
+                    exactAmounts.style.display = 'none';
+                    percentages.style.display = 'block';
+                    participantsDropdown.querySelector('select').setAttribute('required', 'required');
+                } else {
+                    participantsDropdown.style.display = 'none';
+                    exactAmounts.style.display = 'none';
+                    percentages.style.display = 'none';
+                    participantsDropdown.querySelector('select').removeAttribute('required');
+                }
+            }
+        
+            window.onload = function() {
+                handleExpenseTypeChange();
+            };
+        </script>
+
+        <script>
+            document.getElementById('addPercentage').addEventListener('click', function() {
+                var participantsCount = document.querySelectorAll('#participants option:checked').length;
+                var percentageFields = document.getElementById('percentageFields');
+                if (percentageFields.children.length < participantsCount) {
+                    var newPercentageField = document.createElement('div');
+                    newPercentageField.classList.add('percentageField');
+                    newPercentageField.innerHTML = `
+                        <input type="text" name="percentages" placeholder="0.00" required>
+                        <button type="button" class="removePercentage">Remove</button>
+                    `;
+                    percentageFields.appendChild(newPercentageField);
+                }
+            });
+
+            document.addEventListener('click', function(event) {
+                if (event.target.classList.contains('removePercentage')) {
+                    var percentageFields = document.getElementById('percentageFields');
+                    if (percentageFields.children.length > 1) {
+                        event.target.parentElement.remove();
+                    } else {
+                        alert('At least one percentage field is required.');
+                    }
+                }
+            });
+
+            document.getElementById('expenseForm').addEventListener('submit', function(event) {
+                var participantsCount = document.querySelectorAll('#participants option:checked').length;
+                var percentagesCount = document.querySelectorAll('[name="percentages"]').length;
+                if (participantsCount !== percentagesCount) {
+                    event.preventDefault();
+                    alert('Number of percentages should match the number of selected participants.');
+                }
+            });
+        </script>
+
+
+        
+{% endblock %}

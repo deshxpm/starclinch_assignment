@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Sharing App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Welcome to Expense Sharing App</h1>
+        {% if user.is_authenticated %}
+            <p>Hello, <strong>{{ user.first_name|title }}</strong></p>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        {% else %}
+            <div class="login-register">
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Register</a>
+            </div>
+        {% endif %}
+    </header>
+
+    <main>
+    {% block content %}
+    
+    {% endblock %}
+
+    </main>
+
+    <footer>
+        <p>© Expense Sharing. All Rights Reserved. <span>developed by: Desh Deepak</span></p>
+    </footer>
+    <!-- <script>
+        // Function to show/hide participants dropdown based on expense type
+        function handleExpenseTypeChange() {
+            var expenseType = document.getElementById('expense_type').value;
+            var participantsDropdown = document.getElementById('participantsDropdown');
+            if (expenseType === 'EQUAL') {
+                participantsDropdown.style.display = 'block';
+                participantsDropdown.querySelector('select').setAttribute('required', 'required');
+            } else {
+                participantsDropdown.style.display = 'none';
+                participantsDropdown.querySelector('select').removeAttribute('required');
+            }
+        }
+
+        // Call the function on page load
+        window.onload = function() {
+            handleExpenseTypeChange();
+        };
+    </script> -->
+</body>
+</html>
