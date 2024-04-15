@@ -47,6 +47,16 @@ def index(request):
     user_share    = ExpenseSplit.objects.filter(expense__in=user_expenses)
     return render(request, 'index.html', {'all_users':all_users, 'user_expenses': user_expenses, 'user_balances': user_balances, 'user_share':user_share})
 
+def update_balance(user_id, amount):
+    try:
+        user_balance = Balance.objects.get(user_id=user_id)
+    except Balance.DoesNotExist:
+        user_balance = Balance.objects.create(user_id=user_id, amount=amount)
+    else:
+        user_balance.amount += Decimal(amount)
+        user_balance.save()
+
+
 @login_required(login_url='/login/')
 def add_expense(request):
     if request.method == 'POST':
@@ -86,15 +96,6 @@ def add_expense(request):
                     # owes_to_id=user_id,
                     amount=amount
                 )
-            # expense.participants.add(*participants_ids)
-            # share = amount / (len(participants_ids) + 1)
-            # share = amount / (len(participants_ids))
-            # for participant_id in range(len(participants_ids) + 1):
-            #     ExpenseSplit.objects.create(
-            #         expense=expense,
-            #         user_id=participant_id,
-            #         amount_owed=share
-            #     )
 
             share = amount / (len(participants_ids) + 1)  # Including the user who paid
             for participant_id in participants_ids:
@@ -104,8 +105,8 @@ def add_expense(request):
                     user=user_profile,  # Use the actual UserProfile object
                     amount_owed=share
                 )
-                
-        if expense_type == Expense.EXACT:
+    ############################################################################################            
+        elif expense_type == Expense.EXACT:
             participants_with_amount = request.POST.getlist('participants_with_amount')
             if not participants_with_amount:
                 return JsonResponse({'error': 'At least one participant is required for EXACT expense'}, status=400)
@@ -128,28 +129,11 @@ def add_expense(request):
                 participant_balance = Balance.objects.get(user_id=participant_id, owes_to_id=user_id)
                 participant_balance.amount += float(exact_amount)
                 participant_balance.save()
-
-        
-        # # Handle EXACT expense
-        # elif expense_type == Expense.EXACT:
-        #     participants_ids = request.POST.getlist('participants')
-        #     amounts_owed = request.POST.getlist('amounts_owed')
-        #     expense = Expense.objects.create(
-        #         user_id=user_id,
-        #         amount=amount,
-        #         expense_type=Expense.EXACT
-        #     )
-        #     expense.participants.add(*participants_ids)
-        #     for participant_id, amount_owed in zip(participants_ids, amounts_owed):
-        #         Balance.objects.create(
-        #             user_id=participant_id,
-        #             owes_to_id=user_id,
-        #             amount=amount_owed
-        #         )
-        
+    ############################################################################    
         elif expense_type == Expense.PERCENT:
             participants = request.POST.getlist('participants')
             percentages = request.POST.getlist('percentages')
+            print(request.POST,14545454)
             print(participants,111)
             print(percentages,222)
             if len(participants) != len(percentages):
@@ -158,42 +142,26 @@ def add_expense(request):
             total_percentage = sum(map(int, percentages))
             if total_percentage != 100:
                 return JsonResponse({'error': 'Total percentage must be 100'}, status=400)
-
+            
+            update_balance(user_id, amount)
             expense = Expense.objects.create(
                 user_id=user_id,
                 amount=amount,
                 expense_type=Expense.PERCENT
             )
 
-
             for participant, percentage in zip(participants, percentages):
                 user_profile = UserProfile.objects.get(id=participant)
-                amount_owed = (float(amount) * (int(percentage) / 100))
+                amount_owed = (amount * (int(percentage) / 100))
                 ExpenseSplit.objects.create(
                     expense=expense,
                     user=user_profile,
                     amount_owed=amount_owed
                 )
 
-                # Update the balances
-                try:
-                    user_profile_balance = Balance.objects.get(user=user_profile)
-                except Balance.DoesNotExist:
-                    user_profile_balance = Balance.objects.create(user=user_profile, amount=0)
-                user_profile_balance.amount += Decimal(amount_owed)
-                user_profile_balance.save()
-
-                # Update the balances for other participants
-                for other_participant in participants:
-                    if other_participant != participant:
-                        other_user_profile = UserProfile.objects.get(id=other_participant)
-                        try:
-                            other_user_balance = Balance.objects.get(user=other_user_profile)
-                        except Balance.DoesNotExist:
-                            other_user_balance = Balance.objects.create(user=other_user_profile, amount=0)
-                        other_user_balance.amount -= Decimal(amount_owed)
-                        other_user_balance.save()
-        
+                update_balance(participant, -amount_owed)
+                update_balance(user_id, amount_owed)
+            
         # return JsonResponse({'message': 'Expense added successfully'})
         return redirect('/')
     else:
