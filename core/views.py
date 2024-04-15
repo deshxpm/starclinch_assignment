@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib import messages
+from decimal import Decimal
 
 def register(request):
     if request.method == 'POST':
@@ -164,14 +165,7 @@ def add_expense(request):
                 expense_type=Expense.PERCENT
             )
 
-            # for i, percentage in enumerate(percentages):
-            #     user_profile = UserProfile.objects.get(id=participants[i])
-            #     amount_owed = (float(amount) * (int(percentage) / 100))
-            #     ExpenseSplit.objects.create(
-            #         expense=expense,
-            #         user=user_profile,
-            #         amount_owed=amount_owed
-            #     )
+
             for participant, percentage in zip(participants, percentages):
                 user_profile = UserProfile.objects.get(id=participant)
                 amount_owed = (float(amount) * (int(percentage) / 100))
@@ -180,6 +174,25 @@ def add_expense(request):
                     user=user_profile,
                     amount_owed=amount_owed
                 )
+
+                # Update the balances
+                try:
+                    user_profile_balance = Balance.objects.get(user=user_profile)
+                except Balance.DoesNotExist:
+                    user_profile_balance = Balance.objects.create(user=user_profile, amount=0)
+                user_profile_balance.amount += Decimal(amount_owed)
+                user_profile_balance.save()
+
+                # Update the balances for other participants
+                for other_participant in participants:
+                    if other_participant != participant:
+                        other_user_profile = UserProfile.objects.get(id=other_participant)
+                        try:
+                            other_user_balance = Balance.objects.get(user=other_user_profile)
+                        except Balance.DoesNotExist:
+                            other_user_balance = Balance.objects.create(user=other_user_profile, amount=0)
+                        other_user_balance.amount -= Decimal(amount_owed)
+                        other_user_balance.save()
         
         # return JsonResponse({'message': 'Expense added successfully'})
         return redirect('/')
