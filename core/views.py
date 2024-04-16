@@ -105,30 +105,27 @@ def add_expense(request):
                     user=user_profile,  # Use the actual UserProfile object
                     amount_owed=share
                 )
+    
     ############################################################################################            
         elif expense_type == Expense.EXACT:
-            participants_with_amount = request.POST.getlist('participants_with_amount')
-            if not participants_with_amount:
-                return JsonResponse({'error': 'At least one participant is required for EXACT expense'}, status=400)
+            amounts_owed = request.POST.getlist('exact_amount')
+            
+            payer_profile = UserProfile.objects.get(id=user_id)
+        
+            updated_balances = {}
+            for user_id, amount in enumerate(amounts_owed, start=1):
+                if user_id != user_id:
+                    user_profile = UserProfile.objects.get(id=user_id)
+                    payer_balance, _ = Balance.objects.get_or_create(user=payer_profile)
+                    user_balance, _ = Balance.objects.get_or_create(user=user_profile)
+                    payer_balance.amount -= float(amount)
+                    user_balance.amount += float(amount)
+                    payer_balance.save()
+                    user_balance.save()
+                    updated_balances[user_id] = payer_balance.amount
 
-            total_exact_amount = sum([float(item.split(':')[1]) for item in participants_with_amount])
-            if total_exact_amount != amount:
-                return JsonResponse({'error': 'Total exact amount should match the expense amount'}, status=400)
 
-            for participant_info in participants_with_amount:
-                participant_id, exact_amount = participant_info.split(':')
-                user_profile = UserProfile.objects.get(id=participant_id)
-                ExpenseSplit.objects.create(
-                    expense=expense,
-                    user=user_profile,
-                    amount_owed=float(exact_amount)
-                )
-
-            for participant_info in participants_with_amount:
-                participant_id, exact_amount = participant_info.split(':')
-                participant_balance = Balance.objects.get(user_id=participant_id, owes_to_id=user_id)
-                participant_balance.amount += float(exact_amount)
-                participant_balance.save()
+                
     ############################################################################    
         elif expense_type == Expense.PERCENT:
             participants = request.POST.getlist('participants')

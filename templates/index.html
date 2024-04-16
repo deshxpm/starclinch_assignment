@@ -26,7 +26,7 @@
                 <div id="exactAmounts" style="display: none;">
                     <label for="participants_with_amount">Exact Amounts:</label><br>
                     {% for user in all_users %}
-                        <input type="text" name="exact_amount_{{ user.id }}" placeholder="{{ user.first_name }} {{ user.last_name }}">
+                        <input type="text" name="exact_amount" placeholder="{{ user.first_name }} {{ user.last_name }}">
                         <br>
                     {% endfor %}
                 </div>
@@ -132,34 +132,48 @@
                 var participantsDropdown = document.getElementById('participantsDropdown');
                 var exactAmounts = document.getElementById('exactAmounts');
                 var percentages = document.getElementById('percentages');
-        
+                var percentageInputs = document.querySelectorAll('[name="percentages"]');
+
                 // Display or hide sections based on the selected expense type
                 if (expenseType === 'EQUAL') {
                     participantsDropdown.style.display = 'block';
                     exactAmounts.style.display = 'none';
                     percentages.style.display = 'none';
                     participantsDropdown.querySelector('select').setAttribute('required', 'required');
+                    for (var i = 0; i < percentageInputs.length; i++) {
+                        percentageInputs[i].setAttribute('required', 'required');
+                    }
                 } else if (expenseType === 'EXACT') {
-                    participantsDropdown.style.display = 'none';
+                    participantsDropdown.style.display = 'block';
                     exactAmounts.style.display = 'block';
                     percentages.style.display = 'none';
                     participantsDropdown.querySelector('select').removeAttribute('required');
+                    for (var i = 0; i < percentageInputs.length; i++) {
+                        percentageInputs[i].removeAttribute('required');
+                    }
                 } else if (expenseType === 'PERCENT') {
                     participantsDropdown.style.display = 'block';
                     exactAmounts.style.display = 'none';
                     percentages.style.display = 'block';
                     participantsDropdown.querySelector('select').setAttribute('required', 'required');
+                    for (var i = 0; i < percentageInputs.length; i++) {
+                        percentageInputs[i].setAttribute('required', 'required');
+                    }
                 } else {
                     participantsDropdown.style.display = 'none';
                     exactAmounts.style.display = 'none';
                     percentages.style.display = 'none';
                     participantsDropdown.querySelector('select').removeAttribute('required');
+                    for (var i = 0; i < percentageInputs.length; i++) {
+                        percentageInputs[i].removeAttribute('required');
+                    }
                 }
             }
-        
+
             window.onload = function() {
                 handleExpenseTypeChange();
             };
+
         </script>
 
         <script>
